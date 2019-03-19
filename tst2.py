@@ -1,14 +1,12 @@
 import sys
 import time
 
-def spinning_cursor():
-    while True:
-        for cursor in '|/-\\':
-            yield cursor
+dictionary = {}
 
-spinner = spinning_cursor()
-for _ in range(50):
-    sys.stdout.write(next(spinner))
-    sys.stdout.flush()
-    time.sleep(0.1)
-    sys.stdout.write('\b')
+x = (0,1)
+y = (1,5)
+
+dictionary[x] = "hello"
+dictionary[y] = "world"
+
+print(dictionary.get(y))

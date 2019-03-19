@@ -47,7 +47,7 @@ def draw_delaunay( img, subdiv, delaunay_color ) :
 	for t in triangleList :
 		
 		pt1 = (t[1], t[0])
-		pt2 = (t[3], t[2])dra
+		pt2 = (t[3], t[2])
 		pt3 = (t[5], t[4])
 		
 		if rect_contains(r, pt1) and rect_contains(r, pt2) and rect_contains(r, pt3) :
@@ -77,6 +77,7 @@ def mean( img, p1, p2, p3):
 		for j in range(ymin, ymax+1):
 			pt = (i, j)
 			if(isInTriangle(pt, p1, p2, p3)):
+				# print("("+str(i)+","+str(j)+")")
 				total = total + img[i, j]
 				count = count+1
 	if(count != 0):
@@ -106,7 +107,7 @@ def isHomogenious( img, p1, p2, p3, rng):
 					if(vari<0): vari = vari*(-1)
 					if(vari> rng):
 						isHG = False
-		if(pixCount<=15):
+		if(pixCount<=10):
 			isHG = True
 		return [isHG, m]
 	else:
@@ -116,6 +117,7 @@ def isHomogenious( img, p1, p2, p3, rng):
 def decodeImage( encImg, size):
 	blank_image = np.zeros((size[0],size[1]), np.uint8)
 	print("Image is decoding, Please wait: ")
+	# print(encImg)
 	for t in tqdm(encImg):
 		pt1 = (t[0], t[1])
 		pt2 = (t[2], t[3])
@@ -126,14 +128,14 @@ def decodeImage( encImg, size):
 		xmax = int(max(pt1[0], pt2[0], pt3[0]))
 		ymin = int(min(pt1[1], pt2[1], pt3[1]))
 		ymax = int(max(pt1[1], pt2[1], pt3[1]))
-		
+
 		if rect_contains(r, pt1) and rect_contains(r, pt2) and rect_contains(r, pt3):
 			# sys.stdout.write(next(spinner))
 			# sys.stdout.flush()
 			# # time.sleep(0.1)
 			# sys.stdout.write('\b')
 			for i in range(xmin, xmax+1):
-			# print("Range", i)
+				# print("Range", i)
 				for j in range(ymin, ymax+1):
 					pt = (i, j)
 					if(isInTriangle(pt, pt1, pt2, pt3)):
@@ -187,7 +189,7 @@ def encodeImage( img, rng):
 	""" Splitting the triangles in to smaller triangles """
 	#check wether all the triangles are homogenious or not
 	while(isNotConverges):
-		triangleList = subdiv.getTriangleList();
+		triangleList = subdiv.getTriangleList()
 		isNotConverges = False # temparily make False, if not comverges then
 		# again make it true in bellow line by checking the condition
 		
@@ -227,26 +229,34 @@ def encodeImage( img, rng):
 	""" Merger Triangle acording to the similarity/Homogenity """
 	print("Merging: ")
 	# print(homogenTriangles)
-	for p in points:
+	for p in tqdm(points):
 		# points.remove(p)
-		shouldRemove = False
-		neighborTriangle = [t for t in homogenTriangles if (p[0] in t and p[1] in t)]
-		print(neighborTriangle)
-		newm = 0
-		if(len(neighborTriangle) != 0):
-			for t in neighborTriangle:
-				newm = newm + mean(img, (t[0],t[1]), (t[2],t[3]), (t[4],t[5]))
-			for t in neighborTriangle:
-				if(mean(img, (t[0],t[1]), (t[2],t[3]), (t[4],t[5])) - newm<rng):
-					shouldRemove = True
-			if(shouldRemove):
-				points.remove(p)
-				subdiv  = cv2.Subdiv2D(rect)
-				subdiv.insert(points)
-				triangleList = subdiv.getTriangleList();
-				homogenTriangles = [t.tolist() for t in triangleList]
-	
-	encodeImage = [t.append(mean(img, (t[0], t[1]), (t[2], t[3]), (t[4], t[5]))) for t in homogenTriangles]
+		# if(not((p[0] == r[0] and p[1] ==r[1]) or (p[0] == r[2]-1 and p[1] ==r[1]) or (p[0] == r[0] and p[1] ==r[3]-1) or (p[0] == r[2]-1 and p[1] ==r[3]-1))):
+		if(not((p[0] == r[0] and p[1] ==r[1]) or (p[0] == r[2]-1 and p[1] ==r[1]) or (p[0] == r[0] and p[1] ==r[3]-1) or (p[0] == r[2]-1 and p[1] ==r[3]-1))):
+			shouldRemove = False
+			neighborTriangle = [t for t in homogenTriangles if (p[0] in t and p[1] in t)]
+			# print(neighborTriangle)
+			newm = 0
+			if(len(neighborTriangle) > 1):
+				for t in neighborTriangle:
+					newm = newm + mean(img, (t[0],t[1]), (t[2],t[3]), (t[4],t[5]))
+				for t in neighborTriangle:
+					if(mean(img, (t[0],t[1]), (t[2],t[3]), (t[4],t[5])) - newm<rng):
+						shouldRemove = True
+				if(shouldRemove):
+					points.remove(p)
+					subdiv  = cv2.Subdiv2D(rect)
+					subdiv.insert(points)
+					triangleList = subdiv.getTriangleList()
+					homogenTriangles = [t.tolist() for t in triangleList if (rect_contains(r,(t[0], t[1])) and rect_contains(r,(t[2], t[3])) and rect_contains(r,(t[4], t[5])))]
+
+	# print(homogenTriangles)
+	for t in homogenTriangles:
+		t.append(mean(img, (t[0], t[1]), (t[2], t[3]), (t[4], t[5])))
+		if((t[0] ==0 and t[1] ==0)or(t[2] ==0 and t[3] ==0)or (t[4] ==0 and t[5] ==0)):
+			print(t)
+		encodedImage.append(t)
+
 
 
 
